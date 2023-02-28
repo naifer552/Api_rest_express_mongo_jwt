@@ -1,7 +1,14 @@
-import { validationResult } from "express-validator";
+import { User } from "../models/User.js";
 
-const register = (req, res) => {
-    res.json({ ok: 'register' });
+const register = async (req, res) => {
+    const { email, password } = req.body;
+    try {
+        const user = new User({ email, password });
+        await user.save();
+        return res.json({ ok: true });
+    } catch (error) {
+        
+    }
 };
 
 

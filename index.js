@@ -1,5 +1,5 @@
-import 'dotenv/config'
-import './database/connectdb.js'
+import 'dotenv/config';
+import './database/connectdb.js';
 import express from 'express';
 import routerApi from './routes/index.js';
 
