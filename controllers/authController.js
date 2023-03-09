@@ -1,5 +1,6 @@
 import { User } from "../models/User.js";
 import jwt from "jsonwebtoken";
+import { generateRefreshToken, generateToken } from "../utils/tokenManager.js";
 
 const register = async (req, res) => {
     const { email, password } = req.body;
@@ -29,13 +30,42 @@ const login = async (req, res) => {
             return res.status(403).json({ error: "Contraseña incorrecta" });
         }
 
-        // Gemerar el token JWT
-        const token = jwt.sign({uid: user._id}, process.env.JWT_SECRET);
-
-        return res.status(200).json({ token });
+        // Generar el token JWT
+        const { token, expiresIn } = generateToken(user.id);
+        generateRefreshToken(user.id, res)
+        return res.status(200).json({token, expiresIn});
     } catch (error) {
         return res.status(500).json({ error: "Error de servidor" });
     }
-}
+};
 
-export { register, login }
+const infoUser = async(req, res) => {
+    try {
+        const user = await User.findById(req.uid).lean();
+        res.json({ email: user.email });
+    } catch (error) {
+        return res.status(500).json({error: "Error de server"});
+    }
+};
+
+const refreshToken = (req, res) => {
+    try {
+        const refreshTokenCookie =req.cookies.refreshToken;
+        if (!refreshTokenCookie) {
+            throw new Error('No existe el token');
+        }
+        const { uid } = jwt.verify(refreshTokenCookie, process.env.JWT_REFRESH);
+        const { token, expiresIn } = generateToken(uid);
+        return res.status(200).json({token, expiresIn});
+    } catch (error) {
+        console.log(error);
+        return res.status(401).json({ error: error.message });
+    }
+};
+
+const logout = (req, res) => {
+    res.clearCookie('refreshToken');
+    res.json({ ok:true });
+};
+
+export { register, login, infoUser, refreshToken, logout };
