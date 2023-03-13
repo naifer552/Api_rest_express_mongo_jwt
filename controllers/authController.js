@@ -1,5 +1,4 @@
 import { User } from "../models/User.js";
-import jwt from "jsonwebtoken";
 import { generateRefreshToken, generateToken } from "../utils/tokenManager.js";
 
 const register = async (req, res) => {
@@ -7,6 +6,10 @@ const register = async (req, res) => {
     try {
         const user = new User({ email, password });
         await user.save();
+
+        const { token, expiresIn } = generateToken(user.id);
+        generateRefreshToken(user.id, res);
+
         return res.status(201).json({ ok: true });
     } catch (error) {
         if (error.code === 11000) {
@@ -32,7 +35,7 @@ const login = async (req, res) => {
 
         // Generar el token JWT
         const { token, expiresIn } = generateToken(user.id);
-        generateRefreshToken(user.id, res)
+        generateRefreshToken(user.id, res);
         return res.status(200).json({token, expiresIn});
     } catch (error) {
         return res.status(500).json({ error: "Error de servidor" });
@@ -50,16 +53,11 @@ const infoUser = async(req, res) => {
 
 const refreshToken = (req, res) => {
     try {
-        const refreshTokenCookie =req.cookies.refreshToken;
-        if (!refreshTokenCookie) {
-            throw new Error('No existe el token');
-        }
-        const { uid } = jwt.verify(refreshTokenCookie, process.env.JWT_REFRESH);
-        const { token, expiresIn } = generateToken(uid);
+        const { token, expiresIn } = generateToken(req.uid);
         return res.status(200).json({token, expiresIn});
     } catch (error) {
         console.log(error);
-        return res.status(401).json({ error: error.message });
+        return res.status(500).json({error: "Error de server"});
     }
 };
 
